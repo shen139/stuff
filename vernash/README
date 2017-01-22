@@ -1,0 +1,41 @@
+Vernash
+	Stream cipher based on the Vernam cipher and Variable-Length Hashes
+
+Version:
+	0.4
+
+Author:
+	Stefano 'Shen139' Alimonti
+	{ shen139  [at]   gmail   (dot)    com }
+
+Features:
+	- Vernash is fast and secure (Vernash is based on the Vernam cipher and other advanced encryption techniques)
+
+	- Vernash can encrypt/decrypt binary files (executables, documents, ...)
+
+	- Vernash generates only human-readable ciphers (0-Z)
+
+	- Vernash (0.3+) uses pseudo-random numbers and generates different ciphers for the same "text" and "passphrase"
+		Every cipher generated with Vernash is very different from another one!
+		Vernash uses advanced techniques to produce strong cipher.
+		Example:
+			Vernash(<text>"this is a sample text", <password>"this is the password")
+				(cipher #1) => 6CTU76BC153AD5X4A:55C?9F1W8NVHDI8=>E8BXI7S9WADANX>59AM5@=D=3WC9>W61T?V:W<=6D1>V:;2:@
+				(cipher #2) => 7BSD5BA?Y2:AA4Y5AF57B?<70X2>WS>I=>DT9=1I7;?XBS>Q0=58B?4F;5<X01;117Y@8=5B8=5D5DX48T91
+				(cipher #3) => 6HSD45C>067TB3Y:A33;A@861229YT>>;?DT9=0H7T??<OBMYA4JAD5P;6=AV1<<WJ3<:36>;A:O1@X4<X91
+				(cipher #4) => ;CSA14AFV66GDAYHA859B=:E0@8K2E@M71>I9>4R7U=W?@DMX@9<BP0?<E8<U0:A0K3X<W:@8N7@YRV7:=9<
+				(cipher #5) => 7STG44?>X19U?DXGA:7J?:8D005?YTBL9XAT9Q1U7U;4ACA;3P8=B>1?@F<3W4>UY;1>8W8Y9@5A2QS1<::1
+				(cipher #n) => ...
+
+
+	- Vernash (0.3+) shuffles encrypted text
+		Example:
+			scrambleText  ("abcdefghilmnopq1234567", "passphrase"); => "chan43mlopqdif6bg127e5"
+			unScrambleText("chan43mlopqdif6bg127e5", "passphrase"); => "abcdefghilmnopq1234567"
+
+	- Vernash (0.4+) supports MD5, SHA-1 and TripleDES
+	
+	- Vernash (0.4+) supports UTF-8 Encoding
+
+Website:
+	http://lab.openwebspider.org/vernash/
