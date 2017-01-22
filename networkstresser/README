@@ -2,7 +2,7 @@ Network Stresser
 	Easy to use network stress tester
 
 Version:
-	0.5 [2004-02-26]
+	0.6 [2004-04-07]
 
 Author:
 	Stefano 'Shen139' Alimonti
@@ -11,7 +11,7 @@ Author:
 	
 (n)FAQ:
 
-What do I do after decompresseing the archive in a directory?
+What do I do after decompressing the archive in a directory?
 > You must compile the sources with: "gcc stresser-[VERSION].c -o stresser"
   Now you can execute "stresser" 
   (from version 0.5 and later stresser uses the threads and so remember to add at the 
@@ -35,9 +35,36 @@ Is it legal?
 Can my network be damaged after an attack?
 > No! You risk only to lose datas in unsaved files in the case the system crashes
 
-What kind of packets can I send? with stresser?
+What kind of packets can I send with stresser?
 > Tcp packets(with syn flag setted up), udp, icmp(ping) and igmp
+
+Real Time mode and Fast mode?!? What are them?
+> executing stresser in Real Time mode the scheduler assign to the process the 100% of the cpu clocks
+  stopping all others program in execution and making stresser more performant
+  Fast mode instead optimize the ridondant operation of the program by creating a packet of the selected
+  protocol and sending it again and again without consider if there are others IP in list
+  and without create random IP at exclusion of the first that than will be always the same
+
+
+Examples:
+
+./stresser -i 123.321.132.213,mysite.orx:www.hello.ciz -t 11.22.33.44,12.23.34.45:xxx.cot 21,22,80 -s 30
+./stresser -r -t RANDOM,66.66.66.66:32.23.33.22 139 -s 45
+./stresser -f -u 83.34.58.124:74.233.65.32 139
+
+*   In Real Time mode (-r) all the cpu clocks are assigned to the process making impossible
+    other operations (unrecommended the use under X)
+
+**  RANDOM generates a random IP number at each iteration
+
+*** In Fast Mode (-f) is created one packet in memory and only that is sent out so if you also put
+    more than one IP the sent packet will use the first ip addresses
+
 
 
    For doubts, explanations or insults send a mail to shen139(at)eviltime(dot)com
 
+
+
+P.S.
+ Sorry for my bad english! :)
