@@ -2,7 +2,7 @@ Vernash
 	Stream cipher based on the Vernam cipher and Variable-Length Hashes
 
 Version:
-	0.4
+	0.5
 
 Author:
 	Stefano 'Shen139' Alimonti
@@ -37,5 +37,7 @@ Features:
 	
 	- Vernash (0.4+) supports UTF-8 Encoding
 
-Website:
+Websites:
 	http://lab.openwebspider.org/vernash/
+	http://lab.openwebspider.org/vernash/vernashPhp/
+

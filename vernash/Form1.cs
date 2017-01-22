@@ -325,7 +325,7 @@ namespace Vernash
             timer execTime = new timer();
 
             vernash v = new vernash();
-            string x = v.scrambleText(txtText.Text, txtPassword.Text);
+            string x = v.scrambleText(txtText.Text, txtPassword.Text, v.genKeyPos(txtText.Text.Length,txtPassword.Text));
 
             this.Cursor = Cursors.Default;
 
@@ -359,7 +359,7 @@ namespace Vernash
             timer execTime = new timer();
 
             vernash v = new vernash();
-            string x = v.unScrambleText(txtText.Text, txtPassword.Text);
+            string x = v.unScrambleText(txtText.Text, txtPassword.Text, v.genKeyPos(txtText.Text.Length, txtPassword.Text));
 
             this.Cursor = Cursors.Default;
 
@@ -469,12 +469,11 @@ namespace Vernash
             bool vaildVernashFile = false;
 
             // check validity (v0.3+)
-            if (text.Length > vernash.binFileHeader.Length)
+            if (text.Length > vernash.vernashFileHeader.Length)
             {
-                if (text.Substring(0, 7) == vernash.binFileHeader)
+                if (text.Substring(0, 7) == vernash.vernashFileHeader)
                 {
                     vaildVernashFile = true;
-                    text = text.Substring(7);
                 }
             }
 

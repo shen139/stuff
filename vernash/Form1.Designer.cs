@@ -658,7 +658,7 @@ namespace Vernash
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Vernash v0.4";
+            this.Text = "Vernash v0.5";
             this.Shown += new System.EventHandler(this.Form1_Shown);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
