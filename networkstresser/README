@@ -2,7 +2,7 @@ Network Stresser
 	Easy to use network stress tester
 
 Version:
-	0.6 [2004-04-07]
+	0.7 [2004-05-13]
 
 Author:
 	Stefano 'Shen139' Alimonti
@@ -12,10 +12,7 @@ Author:
 (n)FAQ:
 
 What do I do after decompressing the archive in a directory?
-> You must compile the sources with: "gcc stresser-[VERSION].c -o stresser"
-  Now you can execute "stresser" 
-  (from version 0.5 and later stresser uses the threads and so remember to add at the 
-   command line of gcc: "-lpthread")
+> You must compile the sources with: "gcc stresser-[VERSION].c -o stresser -lpthread"
 
 It says me that I must be root! Why?
 > this program uses the raw sockets and so only root can execute it
@@ -36,7 +33,7 @@ Can my network be damaged after an attack?
 > No! You risk only to lose datas in unsaved files in the case the system crashes
 
 What kind of packets can I send with stresser?
-> Tcp packets(with syn flag setted up), udp, icmp(ping) and igmp
+> Tcp packets(with SYN and/or RST flags setted up), udp, icmp(ping) and igmp
 
 Real Time mode and Fast mode?!? What are them?
 > executing stresser in Real Time mode the scheduler assign to the process the 100% of the cpu clocks
@@ -50,7 +47,7 @@ Examples:
 
 ./stresser -i 123.321.132.213,mysite.orx:www.hello.ciz -t 11.22.33.44,12.23.34.45:xxx.cot 21,22,80 -s 30
 ./stresser -r -t RANDOM,66.66.66.66:32.23.33.22 139 -s 45
-./stresser -f -u 83.34.58.124:74.233.65.32 139
+./stresser -f -u 83.34.58.124:74.233.65.32 139 -T 56.34.87.45:98.34.45.56 1234:8080 123456
 
 *   In Real Time mode (-r) all the cpu clocks are assigned to the process making impossible
     other operations (unrecommended the use under X)
@@ -62,7 +59,7 @@ Examples:
 
 
 
-   For doubts, explanations or insults send a mail to shen139(at)eviltime(dot)com
+   For doubts, explanations or insults send a mail to shen139(at)gmail(dot)com
 
 
 
