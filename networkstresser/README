@@ -1,0 +1,43 @@
+Network Stresser
+	Easy to use network stress tester
+
+Version:
+	0.5 [2004-02-26]
+
+Author:
+	Stefano 'Shen139' Alimonti
+	{ shen139  [at]   gmail   (dot)    com }
+
+	
+(n)FAQ:
+
+What do I do after decompresseing the archive in a directory?
+> You must compile the sources with: "gcc stresser-[VERSION].c -o stresser"
+  Now you can execute "stresser" 
+  (from version 0.5 and later stresser uses the threads and so remember to add at the 
+   command line of gcc: "-lpthread")
+
+It says me that I must be root! Why?
+> this program uses the raw sockets and so only root can execute it
+
+What is this for?
+> It's for subjecting to stress a network or a part of it while it recives a lot of packets
+
+At what does it serve to me?
+> a possible use of the stresser is to test if your network(or your PC) can carry a
+  flood attack
+
+Is it legal?
+> Yes! If the attack is finalized to test your network and does not involve other nodes
+  outside your network or if the administrators of the networks involved or who for them
+  agree! it's fully legal
+
+Can my network be damaged after an attack?
+> No! You risk only to lose datas in unsaved files in the case the system crashes
+
+What kind of packets can I send? with stresser?
+> Tcp packets(with syn flag setted up), udp, icmp(ping) and igmp
+
+
+   For doubts, explanations or insults send a mail to shen139(at)eviltime(dot)com
+
