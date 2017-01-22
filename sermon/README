@@ -1,0 +1,19 @@
+SerMon
+	SERver MONitor is an Open Source PHP Server Monitor
+	SerMon uses plugins to check your server and to notify you a problem. 
+	
+Version:
+	0.1 [2009-11-18]
+
+Author:
+	Stefano 'Shen139' Alimonti
+	{ shen139  [at]   gmail   (dot)    com }
+	
+	
+WebSite:
+		http://lab.openwebspider.org/sermon/
+
+		
+DEMO:
+		http://lab.openwebspider.org/sermon/demo.html
+

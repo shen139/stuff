@@ -1,0 +1,9 @@
+<?php
+
+	/* do something */
+	
+	$alert_out = "Print something!\r\n";
+	$alert_out .= "more text!\r\n";
+	/* please don't use echo */
+	
+?>

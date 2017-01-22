@@ -1,0 +1,18 @@
+<?php
+
+$plugin_name =  "<plugin name>";
+
+	/* do something */
+	if( <everything is OK> )
+	{
+		/* do something OR nothing */
+	}
+	else
+	{
+		// Set the variable "$alert" to "true"
+		// Set the variable "$alert_msg" with a descriptive error message
+		$alert = true;
+		$alert_msg = "<error message>";
+	}
+
+?>
